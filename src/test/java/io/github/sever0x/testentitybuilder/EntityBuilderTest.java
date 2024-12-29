@@ -1,8 +1,10 @@
 package io.github.sever0x.testentitybuilder;
 
+import io.github.sever0x.testentitybuilder.core.EntityBuilder;
 import io.github.sever0x.testentitybuilder.exception.FieldAccessException;
 import io.github.sever0x.testentitybuilder.exception.ObjectCreationException;
-import io.github.sever0x.testentitybuilder.model.Person;
+import io.github.sever0x.testentitybuilder.testmodel.Person;
+import io.github.sever0x.testentitybuilder.testmodel.PersonBuilder;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,5 +76,15 @@ public class EntityBuilderTest {
         assertThat(exception)
                 .hasMessageContaining("nonExistentField")
                 .hasMessageContaining("doesn't exist");
+    }
+
+    @Test
+    void shouldSupportMethodChaining() {
+        Person person = new PersonBuilder().withFirstName("John").withLastName("Doe").withAge(25).withActive(true).build();
+
+        assertThat(person.getFirstName()).isEqualTo("John");
+        assertThat(person.getLastName()).isEqualTo("Doe");
+        assertThat(person.getAge()).isEqualTo(25);
+        assertThat(person.isActive()).isTrue();
     }
 }

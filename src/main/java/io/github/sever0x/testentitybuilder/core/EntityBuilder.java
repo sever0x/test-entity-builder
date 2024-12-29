@@ -1,5 +1,6 @@
-package io.github.sever0x.testentitybuilder;
+package io.github.sever0x.testentitybuilder.core;
 
+import io.github.sever0x.testentitybuilder.core.builder.AbstractEntityBuilder;
 import io.github.sever0x.testentitybuilder.exception.FieldAccessException;
 import io.github.sever0x.testentitybuilder.exception.ObjectCreationException;
 import org.slf4j.Logger;
@@ -27,6 +28,18 @@ public class EntityBuilder<T> {
             throw new IllegalArgumentException("Target class can't be null");
         }
         return new EntityBuilder<>(clazz);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> AbstractEntityBuilder<T, ?> builder(Class<T> clazz) {
+        try {
+            String builderClassName = clazz.getName() + "Builder";
+            Class<?> builderClass = Class.forName(builderClassName);
+
+            return (AbstractEntityBuilder<T, ?>) builderClass.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("Could not create builder for " + clazz.getName(), e);
+        }
     }
 
     public EntityBuilder<T> with(String fieldName, Object value) {
