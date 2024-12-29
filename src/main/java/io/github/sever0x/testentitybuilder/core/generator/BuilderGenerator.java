@@ -13,17 +13,32 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Set;
 
+/**
+ * Annotation processor for generating builder classes for annotated entity classes.
+ */
 @AutoService(Processor.class)
 @SupportedAnnotationTypes("io.github.sever0x.testentitybuilder.annotation.GenerateBuilder")
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 public class BuilderGenerator extends AbstractProcessor {
 
+    /**
+     * Initializes the processor with the environment.
+     *
+     * @param processingEnv The processing environment.
+     */
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
         processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "BuilderGenerator initialization started");
     }
 
+    /**
+     * Processes the annotations and generates builder classes for eligible entity classes.
+     *
+     * @param annotations The set of annotations to process.
+     * @param roundEnv    The environment of the current annotation processing round.
+     * @return {@code true} if the annotations were processed successfully, otherwise {@code false}.
+     */
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "BuilderGenerator processing started with annotations: " + annotations);
