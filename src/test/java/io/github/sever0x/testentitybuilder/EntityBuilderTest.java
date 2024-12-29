@@ -1,8 +1,7 @@
 package io.github.sever0x.testentitybuilder;
 
-import io.github.sever0x.EntityBuilder;
-import io.github.sever0x.exception.FieldAccessException;
-import io.github.sever0x.exception.ObjectCreationException;
+import io.github.sever0x.testentitybuilder.exception.FieldAccessException;
+import io.github.sever0x.testentitybuilder.exception.ObjectCreationException;
 import io.github.sever0x.testentitybuilder.model.Person;
 import org.junit.jupiter.api.Test;
 

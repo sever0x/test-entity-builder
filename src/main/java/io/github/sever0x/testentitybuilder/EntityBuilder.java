@@ -1,7 +1,7 @@
-package io.github.sever0x;
+package io.github.sever0x.testentitybuilder;
 
-import io.github.sever0x.exception.FieldAccessException;
-import io.github.sever0x.exception.ObjectCreationException;
+import io.github.sever0x.testentitybuilder.exception.FieldAccessException;
+import io.github.sever0x.testentitybuilder.exception.ObjectCreationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

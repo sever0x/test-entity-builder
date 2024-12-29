@@ -30,4 +30,4 @@ build/
 
 ### custom ###
 logs
-/.idea/
+.idea

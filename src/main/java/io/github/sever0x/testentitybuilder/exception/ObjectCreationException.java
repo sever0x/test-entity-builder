@@ -1,4 +1,4 @@
-package io.github.sever0x.exception;
+package io.github.sever0x.testentitybuilder.exception;
 
 public class ObjectCreationException extends EntityBuilderException {
     private final Class<?> targetClass;
