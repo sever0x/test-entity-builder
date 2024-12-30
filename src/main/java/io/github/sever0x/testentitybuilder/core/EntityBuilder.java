@@ -14,6 +14,34 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
+/**
+ * A flexible and type-safe builder implementation for creating objects with a fluent interface.
+ * This class serves as the core building block for both runtime building and compile-time builder generation.
+ *
+ * <p>The builder supports:
+ * <ul>
+ *     <li>Setting field values using type-safe methods</li>
+ *     <li>Automatic default value generation</li>
+ *     <li>Inheritance handling</li>
+ *     <li>Comprehensive error reporting</li>
+ *     <li>Detailed logging of the building process</li>
+ * </ul>
+ *
+ * <p>Example usage:
+ * <pre>
+ * {@code
+ * Person person = EntityBuilder.of(Person.class)
+ *     .with("firstName", "John")
+ *     .with("age", 25)
+ *     .build();
+ * }
+ * </pre>
+ *
+ * @param <T> The type of entity being built
+ *
+ * @see io.github.sever0x.testentitybuilder.annotation.GenerateBuilder
+ * @see io.github.sever0x.testentitybuilder.core.builder.AbstractEntityBuilder
+ */
 public class EntityBuilder<T> {
     private static final Logger log = LoggerFactory.getLogger(EntityBuilder.class);
     private final String builderId = UUID.randomUUID().toString().substring(0, 8);
@@ -26,6 +54,14 @@ public class EntityBuilder<T> {
         log.debug("Creating EntityBuilder for class: {}", targetClass.getName());
     }
 
+    /**
+     * Creates a new EntityBuilder instance for the specified class.
+     *
+     * @param clazz The class of the entity to build
+     * @param <T> The type of the entity
+     * @return A new EntityBuilder instance
+     * @throws IllegalArgumentException if the provided class is null
+     */
     public static <T> EntityBuilder<T> of(Class<T> clazz) {
         if (clazz == null) {
             log.error("Attempted to create EntityBuilder with null class reference");
@@ -34,6 +70,15 @@ public class EntityBuilder<T> {
         return new EntityBuilder<>(clazz);
     }
 
+    /**
+     * Creates a typed builder instance for the specified class.
+     * This method attempts to locate and instantiate a generated builder class.
+     *
+     * @param clazz The class to create a builder for
+     * @param <T> The type of the entity
+     * @return A new instance of the generated builder
+     * @throws RuntimeException if the builder class cannot be found or instantiated
+     */
     @SuppressWarnings("unchecked")
     public static <T> AbstractEntityBuilder<T, ?> builder(Class<T> clazz) {
         try {
@@ -46,6 +91,14 @@ public class EntityBuilder<T> {
         }
     }
 
+    /**
+     * Sets a value for the specified field.
+     *
+     * @param fieldName The name of the field to set
+     * @param value The value to set for the field
+     * @return This builder instance for method chaining
+     * @throws FieldAccessException if the field doesn't exist or the value type is incompatible
+     */
     public EntityBuilder<T> with(String fieldName, Object value) {
         log.trace("EntityBuilder[id={}] setting field '{}' to value: {}", builderId, fieldName, value);
 
@@ -63,6 +116,13 @@ public class EntityBuilder<T> {
         return this;
     }
 
+    /**
+     * Builds and returns an instance of the entity with all configured values.
+     *
+     * @return A new instance of the entity
+     * @throws ObjectCreationException if the entity cannot be instantiated
+     * @throws FieldAccessException if there are problems setting field values
+     */
     public T build() {
         log.info("EntityBuilder[id={}] building instance of {} with {} custom values", builderId, targetClass.getName(), customValues.size());
 
