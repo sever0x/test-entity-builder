@@ -9,8 +9,10 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
 
 public class EntityBuilder<T> {
     private static final Logger log = LoggerFactory.getLogger(EntityBuilder.class);
@@ -112,24 +114,78 @@ public class EntityBuilder<T> {
         }
     }
 
-    // todo: maybe refactor this?
     private Object getDefaultValue(Field field) {
         Class<?> type = field.getType();
         String fieldName = field.getName();
-        if (type == String.class) {
-            return "test_" + fieldName;
+
+        if (type == byte.class || type == Byte.class) {
+            return (byte) 1;
+        }
+        if (type == short.class || type == Short.class) {
+            return (short) 1;
         }
         if (type == int.class || type == Integer.class) {
             return 1;
         }
+        if (type == long.class || type == Long.class) {
+            return 1L;
+        }
+        if (type == float.class || type == Float.class) {
+            return 1.0f;
+        }
+        if (type == double.class || type == Double.class) {
+            return 1.0d;
+        }
+        if (type == char.class || type == Character.class) {
+            return 'A';
+        }
         if (type == boolean.class || type == Boolean.class) {
             return false;
         }
+
+        if (type == String.class) {
+            return "test_" + fieldName;
+        }
+
+        if (type == List.class) {
+            return new ArrayList<>();
+        }
+        if (type == Set.class) {
+            return new HashSet<>();
+        }
+        if (type == Map.class) {
+            return new HashMap<>();
+        }
+
+        if (type == LocalDate.class) {
+            return LocalDate.now();
+        }
+        if (type == LocalDateTime.class) {
+            return LocalDateTime.now();
+        }
+
+        if (type == BigDecimal.class) {
+            return BigDecimal.ONE;
+        }
+
+        if (type.isEnum()) {
+            Object[] enumConstants = type.getEnumConstants();
+            return enumConstants.length > 0 ? enumConstants[0] : null;
+        }
+
+        log.debug("No default value handler for type: {}", type.getName());
         return null;
     }
 
     private boolean isAssignable(Class<?> fieldType, Class<?> valueType) {
         if (fieldType.isAssignableFrom(valueType)) {
+            return true;
+        }
+
+        if (fieldType == byte.class && valueType == Byte.class) {
+            return true;
+        }
+        if (fieldType == short.class && valueType == Short.class) {
             return true;
         }
         if (fieldType == int.class && valueType == Integer.class) {
@@ -138,10 +194,23 @@ public class EntityBuilder<T> {
         if (fieldType == long.class && valueType == Long.class) {
             return true;
         }
+        if (fieldType == float.class && valueType == Float.class) {
+            return true;
+        }
+        if (fieldType == double.class && valueType == Double.class) {
+            return true;
+        }
         if (fieldType == boolean.class && valueType == Boolean.class) {
             return true;
         }
-        // todo: add other primitives
+        if (fieldType == char.class && valueType == Character.class) {
+            return true;
+        }
+
+        if (isNumericAssignable(fieldType, valueType)) {
+            return true;
+        }
+
         return false;
     }
 
@@ -156,5 +225,29 @@ public class EntityBuilder<T> {
                                 valueType.getName(), fieldType.getName()));
             }
         }
+    }
+
+    private boolean isNumericAssignable(Class<?> fieldType, Class<?> valueType) {
+        Class<?>[] numericTypes = {
+                byte.class, Byte.class,
+                short.class, Short.class,
+                int.class, Integer.class,
+                long.class, Long.class,
+                float.class, Float.class,
+                double.class, Double.class
+        };
+
+        int fieldIndex = -1;
+        int valueIndex = -1;
+        for (int i = 0; i < numericTypes.length; i++) {
+            if (numericTypes[i] == fieldType) fieldIndex = i;
+            if (numericTypes[i] == valueType) valueIndex = i;
+        }
+
+        if (fieldIndex != -1 && valueIndex != -1) {
+            return valueIndex <= fieldIndex;
+        }
+
+        return false;
     }
 }

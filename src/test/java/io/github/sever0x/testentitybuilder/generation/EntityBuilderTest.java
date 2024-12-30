@@ -1,4 +1,4 @@
-package io.github.sever0x.testentitybuilder;
+package io.github.sever0x.testentitybuilder.generation;
 
 import io.github.sever0x.testentitybuilder.core.EntityBuilder;
 import io.github.sever0x.testentitybuilder.exception.FieldAccessException;

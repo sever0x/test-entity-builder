@@ -93,11 +93,21 @@ public class BuilderGenerator extends AbstractProcessor {
                 out.println("import io.github.sever0x.testentitybuilder.core.builder.AbstractEntityBuilder;");
                 out.println();
 
+                Element enclosing = typeElement.getEnclosingElement();
+                if (enclosing != null && enclosing.getKind() == ElementKind.CLASS) {
+                    TypeElement enclosingType = (TypeElement) enclosing;
+                    String enclosingPackage = processingEnv.getElementUtils().getPackageOf(enclosingType).toString();
+                    if (!enclosingPackage.equals(packageName)) {
+                        out.println("import " + enclosingType.getQualifiedName() + ";");
+                    }
+                }
+                out.println();
+
                 out.println("public class " + className + " extends AbstractEntityBuilder<" +
-                        typeElement.getSimpleName() + ", " + className + "> {");
+                       getFullClassName(typeElement) + ", " + className + "> {");
 
                 out.println("    public " + className + "() {");
-                out.println("        super(" + typeElement.getSimpleName() + ".class);");
+                out.println("        super(" + getFullClassName(typeElement) + ".class);");
                 out.println("    }");
                 out.println();
 
@@ -128,6 +138,18 @@ public class BuilderGenerator extends AbstractProcessor {
 
     private String capitalize(String str) {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
+    private String getFullClassName(TypeElement typeElement) {
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE,"Resolving full class name for: " + typeElement.getSimpleName());
+        StringBuilder fullName = new StringBuilder();
+        Element enclosing = typeElement.getEnclosingElement();
+        if (enclosing != null && enclosing.getKind() == ElementKind.CLASS) {
+            String enclosingClassName = ((TypeElement) enclosing).getQualifiedName().toString();
+            fullName.append(enclosingClassName).append(".");
+        }
+        fullName.append(typeElement.getSimpleName());
+        return fullName.toString();
     }
 
 

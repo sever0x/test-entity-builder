@@ -32,3 +32,4 @@ build/
 logs
 .idea
 /src/main/java/io/github/sever0x/testentitybuilder/testmodel/
+/docs/

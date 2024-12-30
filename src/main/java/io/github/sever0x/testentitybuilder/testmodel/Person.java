@@ -1,5 +1,8 @@
-package io.github.sever0x.testentitybuilder.model;
+package io.github.sever0x.testentitybuilder.testmodel;
 
+import io.github.sever0x.testentitybuilder.annotation.GenerateBuilder;
+
+@GenerateBuilder
 public class Person {
     private String firstName;
     private String lastName;
