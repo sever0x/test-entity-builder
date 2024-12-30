@@ -45,14 +45,14 @@ public class EntityBuilder<T> {
     }
 
     public EntityBuilder<T> with(String fieldName, Object value) {
-        try {
-            Field field = targetClass.getDeclaredField(fieldName);
-            validateFieldValue(field, value);
-            customValues.put(fieldName, value);
-            return this;
-        } catch (NoSuchFieldException e) {
-            throw new FieldAccessException(fieldName, targetClass, "Field doesn't exist");
-        }
+        Field field = getAllFields(targetClass).stream()
+                .filter(f -> f.getName().equals(fieldName))
+                .findFirst()
+                .orElseThrow(() -> new FieldAccessException(fieldName, targetClass, "Field doesn't exist"));
+
+        validateFieldValue(field, value);
+        customValues.put(fieldName, value);
+        return this;
     }
 
     public T build() {
@@ -80,100 +80,100 @@ public class EntityBuilder<T> {
     }
 
     private void applyCustomValues(T instance) {
-        customValues.forEach((fieldName, value) -> {
+        Map<String, Field> fieldMap = new HashMap<>();
+        getAllFields(targetClass).forEach(field -> fieldMap.put(field.getName(), field));
+
+        for (Map.Entry<String, Object> entry : customValues.entrySet()) {
+            String fieldName = entry.getKey();
+            Object value = entry.getValue();
+            Field field = fieldMap.get(fieldName);
+
+            if (field == null) {
+                throw new FieldAccessException(fieldName, targetClass, "Field not found in class hierarchy");
+            }
+
             try {
-                Field field = targetClass.getDeclaredField(fieldName);
                 field.setAccessible(true);
                 field.set(instance, value);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to set value for field " + fieldName, e);
+                log.debug("Set custom value for field '{}': {}", fieldName, value);
+            } catch (IllegalAccessException e) {
+                String message = String.format("Failed to set value for field %s", fieldName);
+                log.error(message, e);
+                throw new RuntimeException(message, e);
             }
-        });
+        }
     }
 
     private void setDefaultValues(T instance) {
-        for (Field field : targetClass.getDeclaredFields()) {
+        List<Field> allFields = getAllFields(targetClass);
+
+        log.debug("Setting default values for {} fields in class {}", allFields.size(), targetClass.getName());
+
+        for (Field field : allFields) {
             try {
                 field.setAccessible(true);
 
                 if (!customValues.containsKey(field.getName())) {
-                    Class<?> fieldType = field.getType();
-                    if (fieldType.isPrimitive()) {
-                        Object defaultValue = getDefaultValue(field);
+                    Object defaultValue = getDefaultValue(field);
+                    log.debug("Field '{}' (type: {}) default value: {}", field.getName(), field.getType().getName(), defaultValue);
+
+                    if (defaultValue != null) {
                         field.set(instance, defaultValue);
-                        log.debug("Set default value for primitive field '{}': {}", field.getName(), defaultValue);
-                    } else if (field.get(instance) == null) {
-                        Object defaultValue = getDefaultValue(field);
-                        field.set(instance, defaultValue);
-                        log.debug("Set default value for object field '{}': {}", field.getName(), defaultValue);
+                        log.debug("Successfully set default value for field '{}'", field.getName());
+                    } else {
+                        log.warn("No default value defined for field '{}' of type {}", field.getName(), field.getType().getName());
                     }
                 }
             } catch (IllegalAccessException e) {
-                log.error("Failed to set default value for field '{}' in class '{}'", field.getName(), targetClass.getName(), e);
+                log.error("Failed to set default value for field '{}'", field.getName(), e);
+                throw new RuntimeException("Failed to set default value for field " + field.getName(), e);
             }
         }
+    }
+
+    private List<Field> getAllFields(Class<?> clazz) {
+        List<Field> fields = new ArrayList<>();
+        Class<?> currentClass = clazz;
+
+        while (currentClass != null && !currentClass.equals(Object.class)) {
+            fields.addAll(Arrays.asList(currentClass.getDeclaredFields()));
+            currentClass = currentClass.getSuperclass();
+        }
+
+        return fields;
     }
 
     private Object getDefaultValue(Field field) {
         Class<?> type = field.getType();
         String fieldName = field.getName();
 
-        if (type == byte.class || type == Byte.class) {
-            return (byte) 1;
-        }
-        if (type == short.class || type == Short.class) {
-            return (short) 1;
-        }
-        if (type == int.class || type == Integer.class) {
-            return 1;
-        }
-        if (type == long.class || type == Long.class) {
-            return 1L;
-        }
-        if (type == float.class || type == Float.class) {
-            return 1.0f;
-        }
-        if (type == double.class || type == Double.class) {
-            return 1.0d;
-        }
-        if (type == char.class || type == Character.class) {
-            return 'A';
-        }
-        if (type == boolean.class || type == Boolean.class) {
-            return false;
-        }
+        if (type == byte.class || type == Byte.class) return (byte) 1;
+        if (type == short.class || type == Short.class) return (short) 1;
+        if (type == int.class || type == Integer.class) return 1;
+        if (type == long.class || type == Long.class) return 1L;
+        if (type == float.class || type == Float.class) return 1.0f;
+        if (type == double.class || type == Double.class) return 1.0d;
 
-        if (type == String.class) {
-            return "test_" + fieldName;
-        }
+        if (type == char.class || type == Character.class) return 'A';
+        if (type == boolean.class || type == Boolean.class) return false;
 
-        if (type == List.class) {
-            return new ArrayList<>();
-        }
-        if (type == Set.class) {
-            return new HashSet<>();
-        }
-        if (type == Map.class) {
-            return new HashMap<>();
-        }
+        if (type == String.class) return "test_" + fieldName;
 
-        if (type == LocalDate.class) {
-            return LocalDate.now();
-        }
-        if (type == LocalDateTime.class) {
-            return LocalDateTime.now();
-        }
+        if (type == LocalDate.class) return LocalDate.now();
+        if (type == LocalDateTime.class) return LocalDateTime.now();
 
-        if (type == BigDecimal.class) {
-            return BigDecimal.ONE;
-        }
+        if (type == List.class) return new ArrayList<>();
+        if (type == Set.class) return new HashSet<>();
+        if (type == Map.class) return new HashMap<>();
+
+        if (type == BigDecimal.class) return BigDecimal.ONE;
 
         if (type.isEnum()) {
             Object[] enumConstants = type.getEnumConstants();
             return enumConstants.length > 0 ? enumConstants[0] : null;
         }
 
-        log.debug("No default value handler for type: {}", type.getName());
+        log.debug("Using default value null for type: {} (field: {})", type.getName(), fieldName);
         return null;
     }
 

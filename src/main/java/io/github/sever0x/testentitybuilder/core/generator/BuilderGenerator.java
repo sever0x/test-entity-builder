@@ -11,6 +11,8 @@ import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -87,21 +89,7 @@ public class BuilderGenerator extends AbstractProcessor {
             JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(fullClassName);
 
             try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
-                out.println("package " + packageName + ";");
-                out.println();
-
-                out.println("import io.github.sever0x.testentitybuilder.core.builder.AbstractEntityBuilder;");
-                out.println();
-
-                Element enclosing = typeElement.getEnclosingElement();
-                if (enclosing != null && enclosing.getKind() == ElementKind.CLASS) {
-                    TypeElement enclosingType = (TypeElement) enclosing;
-                    String enclosingPackage = processingEnv.getElementUtils().getPackageOf(enclosingType).toString();
-                    if (!enclosingPackage.equals(packageName)) {
-                        out.println("import " + enclosingType.getQualifiedName() + ";");
-                    }
-                }
-                out.println();
+                writePackageAndImports(out, packageName, typeElement);
 
                 out.println("public class " + className + " extends AbstractEntityBuilder<" +
                        getFullClassName(typeElement) + ", " + className + "> {");
@@ -111,10 +99,10 @@ public class BuilderGenerator extends AbstractProcessor {
                 out.println("    }");
                 out.println();
 
-                for (Element enclosedElement : typeElement.getEnclosedElements()) {
-                    if (enclosedElement.getKind() == ElementKind.FIELD) {
-                        generateWithMethod(out, (VariableElement) enclosedElement, className);
-                    }
+                List<VariableElement> allFields = getAllFields(typeElement);
+
+                for (VariableElement field : allFields) {
+                    generateWithMethod(out, field, className);
                 }
 
                 out.println("}");
@@ -136,6 +124,27 @@ public class BuilderGenerator extends AbstractProcessor {
         out.println();
     }
 
+    private void writePackageAndImports(PrintWriter out, String packageName, TypeElement typeElement) {
+        out.println("package " + packageName + ";");
+        out.println();
+        out.println("import io.github.sever0x.testentitybuilder.core.builder.AbstractEntityBuilder;");
+
+        TypeElement currentClass = typeElement;
+        while (currentClass != null && !currentClass.getQualifiedName().toString().equals("java.lang.Object")) {
+            String currentPackage = processingEnv.getElementUtils().getPackageOf(currentClass).toString();
+            if (!currentPackage.equals(packageName)) {
+                out.println("import " + currentClass.getQualifiedName() + ";");
+            }
+
+            TypeMirror superclass = currentClass.getSuperclass();
+            if (superclass == null) {
+                break;
+            }
+            currentClass = (TypeElement) processingEnv.getTypeUtils().asElement(superclass);
+        }
+        out.println();
+    }
+
     private String capitalize(String str) {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
@@ -150,6 +159,35 @@ public class BuilderGenerator extends AbstractProcessor {
         }
         fullName.append(typeElement.getSimpleName());
         return fullName.toString();
+    }
+
+    private List<VariableElement> getAllFields(TypeElement typeElement) {
+        List<VariableElement> fields = new ArrayList<>();
+        TypeElement currentClass = typeElement;
+
+        while (currentClass != null && !currentClass.getQualifiedName().toString().equals("java.lang.Object")) {
+            for (Element element : currentClass.getEnclosedElements()) {
+                if (element.getKind() == ElementKind.FIELD) {
+                    VariableElement field = (VariableElement) element;
+                    if (!isFieldEligible(field)) {
+                        continue;
+                    }
+                    fields.add(field);
+                }
+            }
+
+            TypeMirror superclass = currentClass.getSuperclass();
+            if (superclass == null) {
+                break;
+            }
+            currentClass = (TypeElement) processingEnv.getTypeUtils().asElement(superclass);
+        }
+        return fields;
+    }
+
+    private boolean isFieldEligible(VariableElement field) {
+        Set<Modifier> modifiers = field.getModifiers();
+        return !modifiers.contains(Modifier.STATIC) && !modifiers.contains(Modifier.FINAL);
     }
 
 
